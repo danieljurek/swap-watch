@@ -19,6 +19,7 @@ enum PreferenceKeys {
     static let sustainedRate = "sustainedRateMiBPerSecond"
     static let frequentFraction = "frequentWriteFraction"
     static let notificationsEnabled = "notificationsEnabled"
+    static let notificationPolicyVersion = "notificationPolicyVersion"
 }
 
 @MainActor
@@ -45,11 +46,14 @@ final class SwapMonitorModel: ObservableObject {
         defaults.register(defaults: [
             PreferenceKeys.sustainedRate: 5.0,
             PreferenceKeys.frequentFraction: 0.25,
-            // Notifications are enabled by default so sustained swap activity
-            // can interrupt the user when it may be contributing to SSD wear.
-            // The dashboard exposes this as an explicit opt-out toggle.
             PreferenceKeys.notificationsEnabled: true
         ])
+        // Upgrade installations created before notifications became opt-out
+        // by default. Future explicit user choices are preserved.
+        if defaults.integer(forKey: PreferenceKeys.notificationPolicyVersion) < 1 {
+            defaults.set(true, forKey: PreferenceKeys.notificationsEnabled)
+            defaults.set(1, forKey: PreferenceKeys.notificationPolicyVersion)
+        }
         thresholds = MonitorThresholds(
             sustainedMiBPerSecond: defaults.double(forKey: PreferenceKeys.sustainedRate),
             frequentWriteFraction: defaults.double(forKey: PreferenceKeys.frequentFraction)
