@@ -20,7 +20,13 @@ enum SwapWatchLauncher {
             return
         }
 
-        SwapWatchApp.main()
+        let application = NSApplication.shared
+        application.setActivationPolicy(.accessory)
+        let delegate = AppDelegate()
+        application.delegate = delegate
+        withExtendedLifetime(delegate) {
+            application.run()
+        }
     }
 }
 
@@ -46,6 +52,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDeleg
         }
         updateStatus(summary: nil)
         if CommandLine.arguments.contains("--verify-ui-lifecycle") {
+            // The status item's own window is visible at status-bar level.
+            // Only normal-level windows represent unintended app windows.
+            let visibleWindows = NSApplication.shared.windows.filter { $0.isVisible && $0.level == .normal }.count
+            print("Visible app windows at startup: \(visibleWindows)")
+            precondition(visibleWindows == 0, "SwapWatch must launch without a window")
             verifyUILifecycle()
         }
     }
@@ -111,15 +122,6 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDeleg
                 }
             }
         }
-    }
-}
-
-@MainActor
-struct SwapWatchApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-
-    var body: some Scene {
-        Settings { EmptyView() }
     }
 }
 

@@ -1,5 +1,9 @@
 # Verification
 
+## Windowless startup fix — 2026-09-16
+
+Removed the empty SwiftUI Settings scene, which could display a blank “SwapWatch Settings” window. Startup now uses `NSApplication` directly with an accessory activation policy and a retained delegate. The dashboard still uses SwiftUI only inside the on-demand popover. Release build/signature checks passed; the explicit UI lifecycle diagnostic reported zero normal-level app windows at startup and exercised real dashboard open/close cycles. The menu-bar item's own system window is excluded from the startup-window check.
+
 ## Efficient UI update — 2026-09-16
 
 The previous running release measured 31.6 MiB footprint (35.8 MiB peak) after over nine hours. The AppKit status-item/on-demand popover version measured 17.7 MiB before opening its dashboard. A separate explicit `--verify-ui-lifecycle` run exercised three open/close cycles: approximately 17.5 MiB initially, 31–32 MiB open, and 26.9–30.2 MiB closed. Framework/allocator caches survive closing, so the initial 44% reduction should not be interpreted as the sustained saving after dashboard use. These are short observations, not a long-running leak benchmark. The status-item symbol is also updated only when its meaning changes to avoid redundant image/layout work every sample.
