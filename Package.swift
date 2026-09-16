@@ -8,6 +8,7 @@ let package = Package(
     targets: [
         .target(name: "SwapCore"),
         .executableTarget(name: "SwapWatch", dependencies: ["SwapCore"]),
-        .testTarget(name: "SwapCoreTests", dependencies: ["SwapCore"])
+        .testTarget(name: "SwapCoreTests", dependencies: ["SwapCore"]),
+        .testTarget(name: "SwapWatchTests", dependencies: ["SwapWatch"])
     ]
 )

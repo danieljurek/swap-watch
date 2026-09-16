@@ -44,7 +44,6 @@ struct DashboardView: View {
     @ObservedObject var monitor: SwapMonitorModel
     @AppStorage(PreferenceKeys.sustainedRate) private var sustainedRate = 5.0
     @AppStorage(PreferenceKeys.frequentFraction) private var frequentFraction = 0.25
-    @AppStorage(PreferenceKeys.notificationsEnabled) private var notificationsEnabled = false
     @State private var showsSettings = false
 
     private let grid = [
@@ -86,10 +85,7 @@ struct DashboardView: View {
         .task {
             monitor.start()
             monitor.updateThresholds(sustainedRate: sustainedRate, frequentFraction: frequentFraction)
-            if notificationsEnabled {
-                let restored = await monitor.restoreNotificationPreference()
-                if !restored { notificationsEnabled = false }
-            }
+            await monitor.notifications.refresh()
         }
         .onChange(of: sustainedRate) { value in
             monitor.updateThresholds(sustainedRate: value, frequentFraction: frequentFraction)
@@ -269,15 +265,13 @@ struct DashboardView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Toggle("Notify about swap-write warnings", isOn: notificationBinding)
-                Text("Notifications are enabled by default to surface possible SSD-impacting swap activity; turn this off to opt out. macOS permission is required. Alerts use a 5-minute cooldown. Frequent or sustained-write alerts require at least 30 seconds of observations; critical pressure may alert immediately.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                NotificationSettingsView(permissions: monitor.notifications)
             }
             .font(.caption)
             .padding(.top, 8)
         }
         .font(.caption.weight(.medium))
+        .disclosureGroupStyle(ClickableDisclosureStyle())
     }
 
     private var footer: some View {
@@ -287,23 +281,6 @@ struct DashboardView: View {
             Button("Quit SwapWatch") { NSApplication.shared.terminate(nil) }
         }
         .controlSize(.small)
-    }
-
-    private var notificationBinding: Binding<Bool> {
-        Binding(
-            get: { notificationsEnabled },
-            set: { newValue in
-                notificationsEnabled = newValue
-                if newValue {
-                    Task {
-                        let allowed = await monitor.requestNotificationsFromUserAction()
-                        if !allowed { notificationsEnabled = false }
-                    }
-                } else {
-                    monitor.disableNotifications()
-                }
-            }
-        )
     }
 
     private var warmedUp: Bool {
@@ -396,6 +373,32 @@ struct DashboardView: View {
             return ("Swap writes are frequent. Check Activity Monitor for apps using unusually large amounts of memory.", .yellow)
         default:
             return nil
+        }
+    }
+}
+
+/// One button owns the complete header hit area, so the arrow and label
+/// toggle exactly once and share keyboard/accessibility behavior.
+private struct ClickableDisclosureStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                configuration.isExpanded.toggle()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    configuration.label
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
+            if configuration.isExpanded {
+                configuration.content
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ final class SwapMonitorModel: ObservableObject {
     @Published private(set) var summary: MonitorSummary?
     @Published private(set) var fallbackPressure: MemoryPressure = .unknown
     @Published private(set) var samplingError: String?
-    @Published private(set) var notificationsActive = false
+    let notifications: NotificationPermissions
     @Published private(set) var lastSuccessfulSampleAt: Date?
 
     private var sampler = SystemSampler()
@@ -54,6 +54,7 @@ final class SwapMonitorModel: ObservableObject {
             defaults.set(true, forKey: PreferenceKeys.notificationsEnabled)
             defaults.set(1, forKey: PreferenceKeys.notificationPolicyVersion)
         }
+        notifications = NotificationPermissions(defaults: defaults)
         thresholds = MonitorThresholds(
             sustainedMiBPerSecond: defaults.double(forKey: PreferenceKeys.sustainedRate),
             frequentWriteFraction: defaults.double(forKey: PreferenceKeys.frequentFraction)
@@ -65,9 +66,7 @@ final class SwapMonitorModel: ObservableObject {
 
         Task { @MainActor [weak self] in
             self?.start()
-            if defaults.bool(forKey: PreferenceKeys.notificationsEnabled) {
-                _ = await self?.restoreNotificationPreference()
-            }
+            await self?.notifications.requestIfNeeded()
         }
     }
 
@@ -117,38 +116,6 @@ final class SwapMonitorModel: ObservableObject {
         let url = URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app")
         let configuration = NSWorkspace.OpenConfiguration()
         NSWorkspace.shared.openApplication(at: url, configuration: configuration)
-    }
-
-    func restoreNotificationPreference() async -> Bool {
-        let center = UNUserNotificationCenter.current()
-        var settings = await center.notificationSettings()
-        if settings.authorizationStatus == .notDetermined {
-            do {
-                _ = try await center.requestAuthorization(options: [.alert, .sound])
-            } catch {
-                notificationsActive = false
-                return false
-            }
-            settings = await center.notificationSettings()
-        }
-        let allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
-        notificationsActive = allowed
-        return allowed
-    }
-
-    func requestNotificationsFromUserAction() async -> Bool {
-        do {
-            let allowed = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
-            notificationsActive = allowed
-            return allowed
-        } catch {
-            notificationsActive = false
-            return false
-        }
-    }
-
-    func disableNotifications() {
-        notificationsActive = false
     }
 
     private func takeSample() {
@@ -207,7 +174,7 @@ final class SwapMonitorModel: ObservableObject {
     }
 
     private func considerNotification(snapshot: MemorySnapshot, summary: MonitorSummary) {
-        guard notificationsActive else { return }
+        guard notifications.canDeliver else { return }
         if let lastNotificationDate, Date().timeIntervalSince(lastNotificationDate) < 300 {
             return
         }

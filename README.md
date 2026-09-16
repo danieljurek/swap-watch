@@ -35,4 +35,6 @@ Notification banners are enabled by default because sustained swap writes may ad
 
 ## Scope
 
+The alert checkbox records your preference independently of macOS permission. If permission is denied or an authorization request fails, the checkbox stays on and the settings UI explains the problem. The app checks authorization, alert availability, and banner style through Apple's `UNUserNotificationCenter.notificationSettings()` API. Open Alerts & thresholds to refresh the status, or use Refresh Permission after changing System Settings → Notifications → SwapWatch. Focus settings can still silence permitted alerts.
+
 SwapWatch measures **system-wide** VM activity; it cannot assign swap writes to a particular model or process. It does not measure physical NAND writes, SMART wear percentage, or remaining SSD life. The disk-space warning is a headroom warning. See [the research notes](docs/memory-and-ssd.md) for the measurement model, sources, and practical LLM guidance.
