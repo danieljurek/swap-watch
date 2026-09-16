@@ -270,7 +270,7 @@ struct DashboardView: View {
                     }
                 }
                 Toggle("Notify about swap-write warnings", isOn: notificationBinding)
-                Text("Notifications use a 5-minute cooldown. Frequent or sustained-write alerts require at least 30 seconds of observations; critical pressure may alert immediately.")
+                Text("Notifications are enabled by default to surface possible SSD-impacting swap activity; turn this off to opt out. macOS permission is required. Alerts use a 5-minute cooldown. Frequent or sustained-write alerts require at least 30 seconds of observations; critical pressure may alert immediately.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

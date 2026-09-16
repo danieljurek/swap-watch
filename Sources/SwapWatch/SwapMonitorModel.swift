@@ -45,7 +45,10 @@ final class SwapMonitorModel: ObservableObject {
         defaults.register(defaults: [
             PreferenceKeys.sustainedRate: 5.0,
             PreferenceKeys.frequentFraction: 0.25,
-            PreferenceKeys.notificationsEnabled: false
+            // Notifications are enabled by default so sustained swap activity
+            // can interrupt the user when it may be contributing to SSD wear.
+            // The dashboard exposes this as an explicit opt-out toggle.
+            PreferenceKeys.notificationsEnabled: true
         ])
         thresholds = MonitorThresholds(
             sustainedMiBPerSecond: defaults.double(forKey: PreferenceKeys.sustainedRate),
@@ -113,7 +116,17 @@ final class SwapMonitorModel: ObservableObject {
     }
 
     func restoreNotificationPreference() async -> Bool {
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        let center = UNUserNotificationCenter.current()
+        var settings = await center.notificationSettings()
+        if settings.authorizationStatus == .notDetermined {
+            do {
+                _ = try await center.requestAuthorization(options: [.alert, .sound])
+            } catch {
+                notificationsActive = false
+                return false
+            }
+            settings = await center.notificationSettings()
+        }
         let allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
         notificationsActive = allowed
         return allowed

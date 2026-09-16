@@ -15,6 +15,6 @@ The installed SDK's VM statistics structure includes newer revisions (104 intege
 
 ## Limits of verification
 
-No real workload was used to deliberately force heavy swap writes or memory pressure. Those scenarios use deterministic tests. Notification delivery depends on user opt-in and macOS settings; no permission was requested or notification sent during validation. Interactive menu controls, sleep/wake behavior, and sustained idle resource use were reviewed in code but not exhaustively automated. Only this Mac was used for runtime verification; macOS 13 is the deployment target, not a separately tested machine.
+No real workload was used to deliberately force heavy swap writes or memory pressure. Those scenarios use deterministic tests. Notifications are enabled by default and request macOS permission on first launch; no permission was requested or notification sent during this validation run. Users can opt out from Alerts & thresholds. Interactive menu controls, sleep/wake behavior, and sustained idle resource use were reviewed in code but not exhaustively automated. Only this Mac was used for runtime verification; macOS 13 is the deployment target, not a separately tested machine.
 
 The standalone Command Line Tools installation reported SDK/PackageDescription version mismatches. The full Xcode installation worked after the user completed its license and onboarding.
