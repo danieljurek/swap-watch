@@ -1,5 +1,15 @@
 # Verification
 
+## Efficient UI update — 2026-09-16
+
+The previous running release measured 31.6 MiB footprint (35.8 MiB peak) after over nine hours. The AppKit status-item/on-demand popover version measured 17.7 MiB before opening its dashboard. A separate explicit `--verify-ui-lifecycle` run exercised three open/close cycles: approximately 17.5 MiB initially, 31–32 MiB open, and 26.9–30.2 MiB closed. Framework/allocator caches survive closing, so the initial 44% reduction should not be interpreted as the sustained saving after dashboard use. These are short observations, not a long-running leak benchmark. The status-item symbol is also updated only when its meaning changes to avoid redundant image/layout work every sample.
+
+All 26 tests passed after changing the UI lifecycle. Release packaging/signature checks passed. The actual dashboard was exported and visually inspected with the new Canvas sparkline. UI automation through System Events was unavailable because the terminal lacks Accessibility permission; the explicit diagnostic mode exercises real popover opening and closing without requiring that permission. It exits after the cycles. No notification was deliberately sent during verification.
+
+The dashboard is released when closed. Its scroll/expansion state resets, but monitoring history, session totals, thresholds, and notification preferences remain in the model. The two-path sparkline retains separate read/write colors, MiB/s scale, threshold line, and breaks across gaps over ten seconds. No Swift Charts import remains.
+
+After avoiding redundant status-symbol image updates, the final build's three-cycle diagnostic measured 17.5 MiB initially, approximately 31.6–31.7 MiB open, and approximately 27 MiB after the first two closes. Reproduce with `dist/SwapWatch.app/Contents/MacOS/SwapWatch --verify-ui-lifecycle`; it temporarily displays its own menu item/popover and then exits.
+
 Verified locally on macOS 26.6.2, Apple silicon, using full Xcode's Swift 6.4 toolchain on 2026-09-15.
 
 - `swift test`: 20 tests passed, zero failures. Includes 4 KiB/16 KiB pages, read/write direction, baseline/session accounting, counter regression, gaps, page-size changes, invalid thresholds, overflow-safe conversion, irregular rolling-window clipping, frequent/sustained/churn classification, bounded history, and a native sampler smoke test.

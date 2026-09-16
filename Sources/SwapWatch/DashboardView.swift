@@ -1,5 +1,4 @@
 import AppKit
-import Charts
 import Foundation
 import SwapCore
 import SwiftUI
@@ -167,39 +166,8 @@ struct DashboardView: View {
                 LegendDot(color: .blue, label: "Read")
             }
 
-            if chartHistory.count >= 2 {
-                Chart {
-                    ForEach(chartHistory) { point in
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Write MiB/s", point.writeBytesPerSecond / 1_048_576),
-                            series: .value("Direction and segment", "Write-\(point.segment)")
-                        )
-                        .foregroundStyle(Color.orange)
-                        .interpolationMethod(.linear)
-
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Read MiB/s", point.readBytesPerSecond / 1_048_576),
-                            series: .value("Direction and segment", "Read-\(point.segment)")
-                        )
-                        .foregroundStyle(Color.blue)
-                        .interpolationMethod(.linear)
-                    }
-
-                    RuleMark(y: .value("Sustained threshold", sustainedRate))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                        .foregroundStyle(.secondary.opacity(0.45))
-                }
-                .chartLegend(.hidden)
-                .chartXAxis(.hidden)
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) {
-                        AxisGridLine().foregroundStyle(.secondary.opacity(0.18))
-                        AxisValueLabel()
-                    }
-                }
-                .chartYScale(domain: 0...chartMaximum)
+            if let history = monitor.summary?.history, history.count >= 2 {
+                SwapSparkline(points: history, threshold: sustainedRate)
                 .frame(height: 86)
                 .accessibilityLabel("Swap read and write rates over the last ten minutes")
             } else {
@@ -303,28 +271,6 @@ struct DashboardView: View {
         return summary.activity.displayName
     }
 
-    private var chartHistory: [SegmentedActivityPoint] {
-        guard let history = monitor.summary?.history else { return [] }
-        let cutoff = Date().addingTimeInterval(-600)
-        let visible = history.filter { $0.timestamp >= cutoff }
-        var segment = 0
-        var previousTimestamp: Date?
-        return visible.map { point in
-            if let previousTimestamp, point.timestamp.timeIntervalSince(previousTimestamp) > 10 {
-                segment += 1
-            }
-            previousTimestamp = point.timestamp
-            return SegmentedActivityPoint(point: point, segment: segment)
-        }
-    }
-
-    private var chartMaximum: Double {
-        let observed = chartHistory.reduce(0.0) { maximum, point in
-            max(maximum, max(point.writeBytesPerSecond, point.readBytesPerSecond) / 1_048_576)
-        }
-        return max(1, sustainedRate, observed * 1.1)
-    }
-
     private var diskFreeText: String {
         guard let snapshot = monitor.snapshot else { return "—" }
         if let total = snapshot.diskTotalBytes, let free = snapshot.diskFreeBytes {
@@ -401,16 +347,6 @@ private struct ClickableDisclosureStyle: DisclosureGroupStyle {
             }
         }
     }
-}
-
-private struct SegmentedActivityPoint: Identifiable {
-    let point: ActivityPoint
-    let segment: Int
-
-    var id: UUID { point.id }
-    var timestamp: Date { point.timestamp }
-    var writeBytesPerSecond: Double { point.writeBytesPerSecond }
-    var readBytesPerSecond: Double { point.readBytesPerSecond }
 }
 
 private struct SectionTitle: View {

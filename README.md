@@ -2,6 +2,8 @@
 
 A local Swift menu-bar monitor for macOS 13 or newer. Watch memory pressure, swap occupancy, and estimated swap reads/writes while running local LLMs.
 
+The status item uses AppKit directly. Its SwiftUI dashboard is created on demand and released when closed, so hidden charts do not update in the background. The history graph draws two paths in a single Canvas instead of using Swift Charts. Monitoring and notification detection continue every two seconds even when the dashboard is closed. Dashboard scroll position and expanded settings reset when reopened; your alert preferences and thresholds persist.
+
 ## Build and run
 
 ```sh
