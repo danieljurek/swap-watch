@@ -1,5 +1,7 @@
 # SwapWatch
 
+<img src="docs/assets/swap-watch.png" alt="SwapWatch orange glass stopwatch icon" width="160" height="160">
+
 A local Swift menu-bar monitor for macOS 13 or newer. Watch memory pressure, swap occupancy, and estimated swap reads/writes while running local LLMs.
 
 The status item uses AppKit directly. Its SwiftUI dashboard is created on demand and released when closed, so hidden charts do not update in the background. The history graph draws two paths in a single Canvas instead of using Swift Charts. Monitoring and notification detection continue every two seconds even when the dashboard is closed. Dashboard scroll position and expanded settings reset when reopened; your alert preferences and thresholds persist.
@@ -12,6 +14,8 @@ open dist/SwapWatch.app
 ```
 
 The app lives in the menu bar, with no Dock icon. Click its status item for the dashboard and settings. Quit from the dashboard. The build script uses the Swift toolchain selected by `xcode-select` (or an explicit `DEVELOPER_DIR`). There are no third-party packages or network services.
+
+The build generates the macOS app icon from `swap-watch.png`, including Retina sizes. The README uses a separate 320-pixel image displayed at 160 pixels. The menu-bar status symbol remains monochrome for readability.
 
 If Xcode requests onboarding, complete `sudo xcodebuild -license` in Terminal and let Xcode finish installing its components. A local ad-hoc signature is applied during packaging; this is not a notarized distribution build.
 

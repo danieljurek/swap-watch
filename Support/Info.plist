@@ -6,6 +6,7 @@
     <key>CFBundleDisplayName</key><string>SwapWatch</string>
     <key>CFBundleIdentifier</key><string>com.djurek.swapwatch</string>
     <key>CFBundleExecutable</key><string>SwapWatch</string>
+    <key>CFBundleIconFile</key><string>SwapWatch.icns</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0.0</string>
     <key>CFBundleVersion</key><string>1</string>
