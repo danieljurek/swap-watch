@@ -111,11 +111,13 @@ struct DashboardView: View {
                     symbol: monitor.effectivePressure.symbolName,
                     color: monitor.effectivePressure.color
                 )
+                .help("macOS memory pressure reflects how efficiently RAM is serving the workload, including compression and swap activity. Low free RAM alone is not a warning.")
                 StatusPill(
                     title: activityLabel,
                     symbol: "arrow.left.arrow.right",
                     color: monitor.summary?.activity.color ?? .secondary
                 )
+                .help(monitor.summary?.note ?? "Collecting swap activity observations. This status describes system-wide swap traffic, not confirmed SSD damage.")
                 Spacer(minLength: 0)
             }
         }
@@ -128,9 +130,6 @@ struct DashboardView: View {
                 MetricTile(title: "Swap used", value: DisplayFormat.bytes(monitor.snapshot?.swapUsedBytes))
                 MetricTile(title: "Swap allocated", value: DisplayFormat.bytes(monitor.snapshot?.swapAllocatedBytes))
             }
-            Text("Allocated is current swap backing, not a fixed capacity limit.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -149,12 +148,8 @@ struct DashboardView: View {
                 MetricTile(title: "60s avg write", value: DisplayFormat.rate(warmedUp ? monitor.summary?.averageWriteBytesPerSecond : nil))
                 MetricTile(title: "60s write duty", value: DisplayFormat.percent(warmedUp ? monitor.summary?.writeActiveFraction : nil))
             }
-            if let note = monitor.summary?.note, !note.isEmpty {
-                Text(note)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
         }
+        .help(monitor.summary?.note ?? "Swap rates are estimated from changes in system-wide OS swap counters.")
     }
 
     private var sparklineSection: some View {
@@ -181,6 +176,7 @@ struct DashboardView: View {
                     }
             }
         }
+        .help("Estimated swap-write (orange) and swap-read (blue) rates over the last ten minutes, in MiB/s. The dashed line marks the sustained-write threshold. Gaps indicate missing samples, not zero activity.")
     }
 
     private var memorySection: some View {
@@ -208,9 +204,6 @@ struct DashboardView: View {
                 MetricTile(title: "Est. swap writes", value: DisplayFormat.estimatedBytes(monitor.summary?.sessionWriteBytes), accent: .orange)
                 MetricTile(title: "Est. swap reads", value: DisplayFormat.estimatedBytes(monitor.summary?.sessionReadBytes), accent: .blue)
             }
-            Text("Derived from OS swap counters; this is estimated swap I/O, not physical NAND writes or SSD lifespan.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -225,6 +218,7 @@ struct DashboardView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .help("Warn when the time-weighted average swap-write rate reaches this threshold over the last 60 seconds, after at least 30 seconds of observations.")
                 Stepper(value: $frequentFraction, in: 0.05...1, step: 0.05) {
                     HStack {
                         Text("Frequent-write duty")
@@ -233,6 +227,7 @@ struct DashboardView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .help("Warn when swap writes average at least 1 MiB/s during this fraction of the observed time in the last 60 seconds. At least 30 seconds of observations are required.")
                 NotificationSettingsView(permissions: monitor.notifications)
             }
             .font(.caption)
@@ -380,6 +375,38 @@ private struct MetricTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(9)
         .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        .help(explanation)
+    }
+
+    private var explanation: String {
+        switch title {
+        case "Swap used":
+            return "Current occupied swap space on disk. Occupancy alone does not indicate ongoing writes or SSD wear."
+        case "Swap allocated":
+            return "Disk space currently allocated as swap backing. macOS can grow this allocation; it is not a fixed capacity limit."
+        case "Write rate":
+            return "Estimated system-wide compressed swap bytes written per second during the latest sampling interval, usually two seconds. This is not total SSD traffic or physical NAND writes."
+        case "Read rate":
+            return "Estimated system-wide compressed swap bytes read per second during the latest sampling interval, usually two seconds. Reads do not consume the NAND program/erase budget like writes."
+        case "60s avg write":
+            return "Time-weighted average estimated swap-write rate over the last 60 seconds. Shown after at least 30 seconds of observations; sampling gaps reset the window."
+        case "60s write duty":
+            return "Fraction of observed time in the last 60 seconds where the sampled swap-write rate was at least 1 MiB/s. Shown after at least 30 seconds of observations."
+        case "Compressed":
+            return "RAM occupied by macOS's memory compressor, not the original uncompressed size. Compression in RAM does not itself write to disk."
+        case "Wired":
+            return "Memory that must remain resident in RAM and cannot be compressed or swapped out."
+        case "Physical memory":
+            return "Total installed physical RAM, not the amount currently available to applications."
+        case "Disk free":
+            return "Available space on the filesystem backing swap. Low free space leaves less room for swap growth and other disk activity."
+        case "Est. swap writes":
+            return "Estimated compressed swap bytes written since monitoring started or Reset was clicked. Derived from OS swap-counter changes; not physical NAND writes or an SSD-lifespan estimate. Sampling gaps are excluded."
+        case "Est. swap reads":
+            return "Estimated compressed swap bytes read since monitoring started or Reset was clicked. Derived from OS swap-counter changes; not total SSD reads. Sampling gaps are excluded."
+        default:
+            return ""
+        }
     }
 }
 

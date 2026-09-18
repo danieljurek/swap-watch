@@ -13,9 +13,7 @@ struct NotificationSettingsView: View {
                     if enabled { Task { await permissions.requestIfNeeded() } }
                 }
             ))
-            Text("Notifications alert you when potential SSD-damaging conditions are detected.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            .help("Notifications are enabled by default and alert you to sustained or frequent swap writes, swap churn, or critical memory pressure. Sustained writes may accelerate SSD wear; these warnings do not prove SSD damage. Turn this off to opt out. macOS notification permission is also required.")
 
             if permissions.isEnabled {
                 Text(permissions.statusMessage)
