@@ -2,45 +2,56 @@
 
 <img src="docs/assets/swap-watch.png" alt="SwapWatch orange glass stopwatch icon" width="160" height="160">
 
-A local Swift menu-bar monitor for macOS 13 or newer. Watch memory pressure, swap occupancy, and estimated swap reads/writes while running local LLMs.
+**Run local LLMs with a clearer view of what they're asking of your Mac.**
 
-The status item uses AppKit directly. Its SwiftUI dashboard is created on demand and released when closed, so hidden charts do not update in the background. The history graph draws two paths in a single Canvas instead of using Swift Charts. Monitoring and notification detection continue every two seconds even when the dashboard is closed. Dashboard scroll position and expanded settings reset when reopened; your alert preferences and thresholds persist.
+SwapWatch is a focused macOS menu-bar app that shows memory pressure, swap usage, and estimated swap-write activity. See when a memory-heavy workload starts leaning on disk—and when that becomes a sustained pattern worth investigating.
 
-## Build and run
+## Why use it?
+
+A large swap number isn't the same as constant disk writes. SwapWatch helps you tell the difference between memory sitting in swap and active back-and-forth traffic, without keeping Activity Monitor open.
+
+- **Know when to ease the workload.** Visible warnings highlight frequent writes, sustained writes, and swap churn so you can consider a smaller model, shorter context, or fewer competing apps.
+- **Watch the writes that matter.** See current read/write rates, a ten-minute activity graph, and estimated write totals for your monitoring session.
+- **Get interrupted when you need to look.** macOS notifications flag concerning activity even when the dashboard is closed. Notifications are **on by default**, require macOS permission, and can be turned off in Alerts & thresholds.
+- **Keep the monitor lightweight.** Native Swift and AppKit, no third-party packages or polling subprocesses. The dashboard is created only when opened and released when closed.
+- **Keep your work local.** No accounts, telemetry, cloud services, or disk-based monitoring history.
+
+<img src="docs/assets/dashboard.png" alt="SwapWatch dashboard showing memory pressure, swap occupancy, read and write rates, activity history, and memory and storage metrics" width="390">
+
+*The actual dashboard with live readings from a Mac. Hover over metrics for explanations.*
+
+## Get SwapWatch
+
+Requires **macOS 13 or newer** and Xcode to build. There isn't a downloadable release yet; build the app locally:
 
 ```sh
+git clone git@github.com:danieljurek/swap-watch.git
+cd swap-watch
 bash scripts/build-app.sh
 open dist/SwapWatch.app
 ```
 
-The app lives in the menu bar, with no Dock icon. Click its status item for the dashboard and settings. Quit from the dashboard. The build script uses the Swift toolchain selected by `xcode-select` (or an explicit `DEVELOPER_DIR`). There are no third-party packages or network services.
+This repository is currently private, so cloning requires repository access. If Xcode requests onboarding, open Xcode and complete its license and component installation first.
 
-The build generates the macOS app icon from `swap-watch.png`, including Retina sizes. The README uses a separate 320-pixel image displayed at 160 pixels. The menu-bar status symbol remains monochrome for readability.
+SwapWatch appears in your menu bar, not the Dock. Click it to open the dashboard, adjust warning thresholds, or quit. To start it automatically, add the built app in **System Settings → General → Login Items**.
 
-If Xcode requests onboarding, complete `sudo xcodebuild -license` in Terminal and let Xcode finish installing its components. A local ad-hoc signature is applied during packaging; this is not a notarized distribution build.
+## What the warnings mean
+
+Sustained heavy writes can accelerate SSD wear, but **SwapWatch is a workload monitor, not an SSD health test or failure predictor**. It estimates compressed swap transfers from system-wide macOS counters; it does not measure physical NAND writes, remaining endurance, or which app caused the swapping. It observes activity and alerts you—it never stops models, kills processes, or changes macOS swap settings.
+
+Samples arrive approximately every two seconds. By default, warnings identify an average write rate of at least 5 MiB/s, or writes of at least 1 MiB/s during 25% of the observed time in a rolling 60-second window. Classification needs at least 30 seconds of observations. Significant reads alongside these writes indicate churn. Critical memory pressure can alert immediately; repeated notifications have a five-minute cooldown. These thresholds are adjustable operational heuristics, **not SSD damage limits**.
+
+Session totals exclude activity before launch and missed sampling intervals, and reset when you quit or click Reset. Your preferences persist. Notification settings show macOS permission separately from your opt-in preference; Focus can still silence permitted notifications.
+
+For the details behind the measurements, see [memory and SSD research](docs/memory-and-ssd.md).
+
+## Development
 
 ```sh
 swift test
 dist/SwapWatch.app/Contents/MacOS/SwapWatch --diagnose
 ```
 
-Diagnostics read a few real samples and exit. The development sandbox may deny sysctl reads; run the built app normally from Finder or Terminal. Unavailable readings are shown explicitly.
+The build uses the Swift toolchain selected by `xcode-select` (or an explicit `DEVELOPER_DIR`), generates the app icon from `swap-watch.png`, and applies a local ad-hoc signature. It is not a notarized distribution build. Generated build files are excluded from Git.
 
-## What to watch
-
-- **Memory pressure:** macOS's normal / warning / critical state. It is not a percentage of RAM used, and this coarse state is not a reproduction of Activity Monitor's graph.
-- **Swap used:** current occupancy. Allocated swap is the current backing allocation, not a hard limit; macOS can grow it.
-- **Swap writes:** estimated outgoing compressed swap I/O per second. Repeated writes are the relevant exposure when considering SSD wear.
-- **Swap reads:** useful for spotting back-and-forth activity and slow inference. Reads are not added to write totals.
-- **Session writes:** estimated swap writes observed while this app runs. It excludes missed intervals, sleep gaps, and activity before launch. It resets on quit or manual reset.
-- **Frequent / sustained / churning:** configurable workload warnings. These are operational heuristics, not SSD endurance specifications.
-
-Sampling runs every two seconds. The detector uses a rolling 60-second window and needs 30 seconds of valid observations before classifying sustained or frequent activity. Defaults: sustained writes average at least 5 MiB/s; frequent writes occur in at least 25% of observed time at 1 MiB/s or more. Significant reads alongside either condition produce a churn warning. Disk headroom is flagged below 10 GiB or 10% free; these are configurable activity thresholds and a fixed space heuristic, not SSD safety limits. A chart retains up to ten minutes in memory. Gaps over ten seconds, counter regressions, or page-size changes reset the rate baseline. No history is written to disk.
-
-Notification banners are enabled by default because sustained swap writes may add SSD traffic during a memory-heavy workload. On first launch, macOS asks for notification permission; the Alerts & thresholds control is an explicit opt-out. Frequent, sustained, and churn alerts need the observation warm-up; critical pressure can alert immediately. A five-minute cooldown limits repeated banners. Settings persist locally. There is no background helper, automatic process killing, swap configuration change, or automatic login registration. To start at login, you can add the built app in System Settings → General → Login Items.
-
-## Scope
-
-The alert checkbox records your preference independently of macOS permission. If permission is denied or an authorization request fails, the checkbox stays on and the settings UI explains the problem. The app checks authorization, alert availability, and banner style through Apple's `UNUserNotificationCenter.notificationSettings()` API. Open Alerts & thresholds to refresh the status, or use Refresh Permission after changing System Settings → Notifications → SwapWatch. Focus settings can still silence permitted alerts.
-
-SwapWatch measures **system-wide** VM activity; it cannot assign swap writes to a particular model or process. It does not measure physical NAND writes, SMART wear percentage, or remaining SSD life. The disk-space warning is a headroom warning. See [the research notes](docs/memory-and-ssd.md) for the measurement model, sources, and practical LLM guidance.
+See [verification notes](docs/verification.md) for testing and runtime checks.

@@ -202,7 +202,8 @@ private enum ScreenshotExporter {
 
         let monitor = SwapMonitorModel()
         monitor.start()
-        RunLoop.current.run(until: Date().addingTimeInterval(4.25))
+        // Let the rolling metrics warm up and the graph collect real history.
+        RunLoop.current.run(until: Date().addingTimeInterval(34.25))
 
         let hostingView = NSHostingView(rootView: DashboardView(monitor: monitor))
         hostingView.frame = NSRect(x: 0, y: 0, width: 390, height: 620)
