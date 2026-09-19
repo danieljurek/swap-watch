@@ -16,6 +16,14 @@ Mac SSDs are soldered to the board and difficult to replace. Use this tool while
 
 I use it while running models locally in LM Studio so my laptop enjoys a long life.
 
+### Did you write it? 
+
+I did not. Codex researched APIs to get swap information and wrote the tool for me. I've never written a line of Swift in my life. This whole thing is vibe coded.
+
+### Contributions
+
+Contributions welcome! Open issues and pull requests 🚀
+
 ## Get SwapWatch
 
 Requires **macOS 13 or newer** and Xcode to build. There isn't a downloadable release yet; build the app locally:
