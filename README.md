@@ -6,6 +6,10 @@
 
 SwapWatch is a focused macOS menu-bar app that shows memory pressure, swap usage, and estimated swap-write activity. See when a memory-heavy workload starts leaning on disk—and when that becomes a sustained pattern worth investigating.
 
+<img src="docs/assets/dashboard.png" alt="SwapWatch dashboard showing memory pressure, swap occupancy, read and write rates, activity history, and memory and storage metrics" width="390">
+
+*The actual dashboard with live readings from a Mac. Hover over metrics for explanations.*
+
 ## Why use it?
 
 A large swap number isn't the same as constant disk writes. SwapWatch helps you tell the difference between memory sitting in swap and active back-and-forth traffic, without keeping Activity Monitor open.
@@ -15,10 +19,6 @@ A large swap number isn't the same as constant disk writes. SwapWatch helps you 
 - **Get interrupted when you need to look.** macOS notifications flag concerning activity even when the dashboard is closed. Notifications are **on by default**, require macOS permission, and can be turned off in Alerts & thresholds.
 - **Keep the monitor lightweight.** Native Swift and AppKit, no third-party packages or polling subprocesses. The dashboard is created only when opened and released when closed.
 - **Keep your work local.** No accounts, telemetry, cloud services, or disk-based monitoring history.
-
-<img src="docs/assets/dashboard.png" alt="SwapWatch dashboard showing memory pressure, swap occupancy, read and write rates, activity history, and memory and storage metrics" width="390">
-
-*The actual dashboard with live readings from a Mac. Hover over metrics for explanations.*
 
 ## Get SwapWatch
 
